@@ -284,3 +284,50 @@ function constraint_mc_branch_flow(pm::AbstractUnbalancedPowerModel, nw::Int, f_
         ]
     end
 end
+
+"""
+a = exp(im*2π/3)
+U+ = (1*Ua + a*Ub a^2*Uc)/3
+U- = (1*Ua + a^2*Ub a*Uc)/3
+vuf = |U-|/|U+|
+|U-| <= vufmax*|U+|
+|U-|^2 <= vufmax^2*|U+|^2
+"""
+vufmax = 0.02
+function constraint_mc_bus_voltage_magnitude_vuf(pm::AbstractUnbalancedACPModel, nw::Int, bus_id::Int, vufmax::Real)
+    if !haskey(var(pm, nw_id_default), :vmpossqr)
+        var(pm, nw_id_default)[:vmpossqr] = Dict{Int, Any}()
+        var(pm, nw_id_default)[:vmnegsqr] = Dict{Int, Any}()
+    end
+    (vm_a, vm_b, vm_c) = [var(pm, nw, :vm, bus_id)[i] for i in 1:3]
+    (va_a, va_b, va_c) = [var(pm, nw, :va, bus_id)[i] for i in 1:3]
+    a = exp(im*2*pi/3)
+    # real and imag functions cannot be used in NLexpressions, so precalculate
+    are = real(a)
+    aim = imag(a)
+    a2re = real(a^2)
+    a2im = imag(a^2)
+    # real and imaginary components of U+
+    vrepos = JuMP.@expression(pm.model,
+        (vm_a*cos(va_a) + are*vm_b*cos(va_b) - aim*vm_b*sin(va_b) + a2re*vm_c*cos(va_c) - a2im*vm_c*sin(va_c))/3
+    )
+    vimpos = JuMP.@expression(pm.model,
+        (vm_a*sin(va_a) + are*vm_b*sin(va_b) + aim*vm_b*cos(va_b) + a2re*vm_c*sin(va_c) + a2im*vm_c*cos(va_c))/3
+    )
+    # square of magnitude of U+, |U+|^2
+    vmpossqr = JuMP.@expression(pm.model, vrepos^2+vimpos^2)
+    # real and imaginary components of U-
+    vreneg = JuMP.@expression(pm.model,
+        (vm_a*cos(va_a) + a2re*vm_b*cos(va_b) - a2im*vm_b*sin(va_b) + are*vm_c*cos(va_c) - aim*vm_c*sin(va_c))/3
+    )
+    vimneg = JuMP.@expression(pm.model,
+        (vm_a*sin(va_a) + a2re*vm_b*sin(va_b) + a2im*vm_b*cos(va_b) + are*vm_c*sin(va_c) + aim*vm_c*cos(va_c))/3
+    )
+    # square of magnitude of U-, |U-|^2
+    vmnegsqr = JuMP.@expression(pm.model, vreneg^2+vimneg^2)
+    # finally, apply constraint
+    JuMP.@constraint(pm.model, vmnegsqr <= vufmax^2*vmpossqr)
+    # DEBUGGING: save references for post check
+    #var(pm, nw_id_default, :vmpossqr)[bus_id] = vmpossqr
+    #var(pm, nw_id_default, :vmnegsqr)[bus_id] = vmnegsqr
+end
