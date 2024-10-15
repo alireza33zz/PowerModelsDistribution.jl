@@ -52,6 +52,10 @@ function constraint_mc_bus_voltage_balance(pm::AbstractUnbalancedPowerModel, bus
         constraint_mc_bus_voltage_magnitude_vuf(pm, nw, bus_id, bus["vm_vuf_max"])
     end
 
+    if haskey(bus, "vm_vuf_Z")
+        constraint_mc_bus_voltage_linearZ_vuf(pm, nw, bus_id, bus["vm_vuf_Z"])
+    end
+
     if haskey(bus, "vm_seq_neg_max")
         constraint_mc_bus_voltage_magnitude_negative_sequence(pm, nw, bus_id, bus["vm_seq_neg_max"])
     end

@@ -863,13 +863,18 @@ function constraint_mc_bus_voltage_magnitude_vuf(pm::AbstractUnbalancedACPModel,
     # square of magnitude of U-, |U-|^2
     vmnegsqr = JuMP.@expression(pm.model, vreneg^2+vimneg^2)
     # finally, apply constraint
-    vuf = JuMP.@constraint(pm.model, vmnegsqr <= vufmax^2*vmpossqr)
+    JuMP.@constraint(pm.model, vmnegsqr <= vufmax^2*vmpossqr)
     # DEBUGGING: save references for post check
-    #var(pm, nw_id_default, :vmpossqr)[bus_id] = vmpossqr
-    #var(pm, nw_id_default, :vmnegsqr)[bus_id] = vmnegsqr
-    Flag = Flag + 12;
+    var(pm, nw_id_default, :vmpossqr)[bus_id] = vmpossqr
+    var(pm, nw_id_default, :vmnegsqr)[bus_id] = vmnegsqr
 end
 
+function constraint_mc_bus_voltage_linearZ_vuf(pm::AbstractUnbalancedACPModel, nw::Int, bus_id::Int, vufZ::Real)
+    (vm_a, vm_b, vm_c) = [var(pm, nw, :vm, bus_id)[i] for i in 1:3]
+    Xpression_Value = JuMP.@expression(pm.model, (abs(vm_a - vm_b) + abs(vm_b - vm_c) + abs(vm_c - vm_a)) )
+    # finally, apply constraint
+    JuMP.@constraint(pm.model, Xpression_Value <= 6.616*vufZ)
+end
 
 """
 a = exp(im*2π/3)
