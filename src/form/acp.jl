@@ -863,11 +863,11 @@ function constraint_mc_bus_voltage_magnitude_vuf(pm::AbstractUnbalancedACPModel,
     # square of magnitude of U-, |U-|^2
     vmnegsqr = JuMP.@expression(pm.model, vreneg^2+vimneg^2)
     # finally, apply constraint
-    JuMP.@constraint(pm.model, vmnegsqr <= vufmax^2*vmpossqr)
+    vuf = JuMP.@constraint(pm.model, vmnegsqr <= vufmax^2*vmpossqr)
     # DEBUGGING: save references for post check
     #var(pm, nw_id_default, :vmpossqr)[bus_id] = vmpossqr
     #var(pm, nw_id_default, :vmnegsqr)[bus_id] = vmnegsqr
-    Flag =12;
+    Flag = Flag + 12;
 end
 
 
