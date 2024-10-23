@@ -44,7 +44,6 @@ For a discussion of sequence components and voltage unbalance factor (VUF), see
 }
 """
 function constraint_mc_bus_voltage_balance(pm::AbstractUnbalancedPowerModel, bus_id::Int; nw=nw_id_default)::Nothing
-    @assert(ref(pm, nw, :conductors)==3)
 
     bus = ref(pm, nw, :bus, bus_id)
 
